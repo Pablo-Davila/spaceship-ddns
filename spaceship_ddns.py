@@ -1,7 +1,7 @@
 """
 Update the @ DDNS record of a domain registered with spaceship
-(https://www.spaceship.com/). You can get the API key and secret from spaceship's
-website.
+(https://www.spaceship.com/). You can get the API key and secret from
+spaceship's website.
 """
 
 import argparse

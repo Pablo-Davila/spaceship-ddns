@@ -1,0 +1,5 @@
+services:
+  spaceship_ddns:
+    container_name: spaceship_ddns
+    build: .
+    env_file: .env

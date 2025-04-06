@@ -7,4 +7,4 @@ ADD requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 ADD . .
 
-CMD [ "python" "./spaceship_ddns.py" ]
+CMD ["python3", "spaceship_ddns.py"]

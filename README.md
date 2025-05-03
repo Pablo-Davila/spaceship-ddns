@@ -2,7 +2,9 @@
 
 # Spaceship DDNS
 
-This is a single (dockerized) Python 3 script to update the IP of a domain registered with [Spaceship](https://www.spaceship.com/).
+This is a single (dockerized) Python 3 script to update the main IP address of a domain registered with [Spaceship](https://www.spaceship.com/).
+
+Please note that it will only work for domains with less than 500 DNS records. I have not bothered to handle pagination for now.
 
 
 ## Usage

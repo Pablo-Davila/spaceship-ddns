@@ -62,11 +62,47 @@ def parse_args():
     return domain, api_key, api_secret
 
 
-def main():
-    domain, api_key, api_secret = parse_args()
+def get_dns_entries(domain: str, api_key: str, api_secret: str):
+    url = f"{ENDPOINT}/{domain}?take=500&skip=0"
 
+    headers = {
+        "X-API-Key": api_key,
+        "X-API-Secret": api_secret,
+    }
+    response = requests.get(url, headers=headers)
+
+    response_text = response.content.decode("utf8")
+    date = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
+    print(f"(UTC) {date} HTTP {response.status_code} {response_text}")
+
+    return response.json()["items"]
+
+
+def delete_dns_entry(domain: str, api_key: str, api_secret: str, address: str):
     url = f"{ENDPOINT}/{domain}"
-    address = requests.get('https://api.ipify.org').content.decode('utf8')
+
+    payload = [
+        {
+            "type": "A",
+            "name": "@",
+            "address": address,
+        }
+    ]
+    headers = {
+        "X-API-Key": api_key,
+        "X-API-Secret": api_secret,
+        "content-type": "application/json"
+    }
+    response = requests.delete(url, json=payload, headers=headers)
+
+    response_text = response.content.decode("utf8")
+    date = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
+    print(f"(UTC) {date} HTTP {response.status_code} {response_text}")
+    print(payload)
+
+
+def add_dns_entry(domain: str, api_key: str, api_secret: str, address: str):
+    url = f"{ENDPOINT}/{domain}"
 
     payload = {
         "force": True,
@@ -86,9 +122,36 @@ def main():
     }
     response = requests.put(url, json=payload, headers=headers)
 
+    response_text = response.content.decode("utf8")
     date = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
-    response_text = response.content.decode('utf8')
     print(f"(UTC) {date} HTTP {response.status_code} {response_text}")
+    print(payload)
+
+
+def main():
+    domain, api_key, api_secret = parse_args()
+
+    try:
+        current_address = (
+            requests
+            .get("https://api.ipify.org")
+            .content
+            .decode("utf8")
+        )
+    except requests.RequestException as e:
+        raise Exception(f"Unable to retrieve the current address") from e
+
+    dns_entries = get_dns_entries(domain, api_key, api_secret)
+    current_address_found = False
+    for entry in dns_entries:
+        if entry["name"] == "@" and entry["type"] == "A":
+            if entry["address"] == current_address:
+                current_address_found = True
+            else:
+                delete_dns_entry(domain, api_key, api_secret, entry["address"])
+
+    if not current_address_found:
+        add_dns_entry(domain, api_key, api_secret, current_address)
 
 
 if __name__ == "__main__":

@@ -139,7 +139,7 @@ def main():
             .decode("utf8")
         )
     except requests.RequestException as e:
-        raise Exception(f"Unable to retrieve the current address") from e
+        raise Exception("Unable to retrieve the current address") from e
 
     dns_entries = get_dns_entries(domain, api_key, api_secret)
     current_address_found = False

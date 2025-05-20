@@ -1,5 +1,5 @@
 """
-Update the @ DDNS record of a domain registered with spaceship
+Update the DDNS record of a domain registered with spaceship
 (https://www.spaceship.com/). You can get the API key and secret from
 spaceship's website.
 """
@@ -18,7 +18,7 @@ def get_env_var(variable_name: str):
 
     if domain is None:
         raise ValueError(
-            f"Please provide a domain or set {variable_name} "
+            f"Please use the CLI arguments or set the {variable_name} "
             "environment variable"
         )
 
@@ -45,6 +45,12 @@ def parse_args():
         help="API secret",
         required=False,
     )
+    parsers.add_argument(
+        "-N", "--name",
+        type=str,
+        help="Target DNS name. Use @ for domain root.",
+        required=False,
+    )
     args = parsers.parse_args()
 
     domain: str | None = args.domain
@@ -59,7 +65,11 @@ def parse_args():
     if api_secret is None:
         api_secret = get_env_var("SPACESHIP_DDNS_API_SECRET")
 
-    return domain, api_key, api_secret
+    name: str | None = args.name
+    if name is None:
+        name = get_env_var("SPACESHIP_DDNS_NAME")
+
+    return domain, api_key, api_secret, name
 
 
 def get_dns_entries(domain: str, api_key: str, api_secret: str):
@@ -78,13 +88,19 @@ def get_dns_entries(domain: str, api_key: str, api_secret: str):
     return response.json()["items"]
 
 
-def delete_dns_entry(domain: str, api_key: str, api_secret: str, address: str):
+def delete_dns_entry(
+    domain: str,
+    api_key: str,
+    api_secret: str,
+    name: str,
+    address: str,
+):
     url = f"{ENDPOINT}/{domain}"
 
     payload = [
         {
             "type": "A",
-            "name": "@",
+            "name": name,
             "address": address,
         }
     ]
@@ -101,7 +117,13 @@ def delete_dns_entry(domain: str, api_key: str, api_secret: str, address: str):
     print(payload)
 
 
-def add_dns_entry(domain: str, api_key: str, api_secret: str, address: str):
+def add_dns_entry(
+    domain: str,
+    api_key: str,
+    api_secret: str,
+    name: str,
+    address: str,
+):
     url = f"{ENDPOINT}/{domain}"
 
     payload = {
@@ -109,7 +131,7 @@ def add_dns_entry(domain: str, api_key: str, api_secret: str, address: str):
         "items": [
             {
                 "type": "A",
-                "name": "@",
+                "name": name,
                 "address": address,
                 "ttl": 1800,
             },
@@ -129,7 +151,7 @@ def add_dns_entry(domain: str, api_key: str, api_secret: str, address: str):
 
 
 def main():
-    domain, api_key, api_secret = parse_args()
+    domain, api_key, api_secret, name = parse_args()
 
     try:
         current_address = (
@@ -144,14 +166,20 @@ def main():
     dns_entries = get_dns_entries(domain, api_key, api_secret)
     current_address_found = False
     for entry in dns_entries:
-        if entry["name"] == "@" and entry["type"] == "A":
+        if entry["name"] == name and entry["type"] == "A":
             if entry["address"] == current_address:
                 current_address_found = True
             else:
-                delete_dns_entry(domain, api_key, api_secret, entry["address"])
+                delete_dns_entry(
+                    domain=domain,
+                    api_key=api_key,
+                    api_secret=api_secret,
+                    name=name,
+                    address=entry["address"],
+                )
 
     if not current_address_found:
-        add_dns_entry(domain, api_key, api_secret, current_address)
+        add_dns_entry(domain, api_key, api_secret, name, current_address)
 
 
 if __name__ == "__main__":
